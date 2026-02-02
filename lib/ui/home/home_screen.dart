@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:code_test_flutter/data/api/entities/photo_api_model.dart';
 import 'package:code_test_flutter/inject/app_module.dart';
+import 'package:code_test_flutter/ui/util/retry_button.dart';
 import 'package:flutter/material.dart';
 import 'package:code_test_flutter/blocs/home_bloc.dart';
 import 'package:code_test_flutter/core/contracts/home_contract.dart';
@@ -36,11 +37,12 @@ class _HomeScreenState extends State<HomeScreen> {
         builder: (context, snapshot) {
           if (!snapshot.hasData) {
             return const Center(child: CircularProgressIndicator());
+          } else if (snapshot.hasError) {
+            return RetryButton(onPressed: () => bloc.initialize());
           }
-
           final data = snapshot.data!;
           return Scaffold(
-            body: _HomeContent(data: data),
+            body: SafeArea(child: _HomeContent(data: data)),
           );
         });
   }
@@ -76,11 +78,7 @@ class _PhotosSection extends StatelessWidget {
       onRefresh: () async {
         await bloc.initialize();
       },
-      child: Stack(
-        children: [
-          _PhotosSectionContent(photos),
-        ],
-      ),
+      child: _PhotosSectionContent(photos),
     );
   }
 }
@@ -93,60 +91,73 @@ class _PhotosSectionContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    for (int i = 0; i < photos.length; i += 2) {
-      rows.add(Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8.0),
-        child: Row(
-          children: [
-            // First photo (always present)
-            Expanded(
-              child: _PhotoItem(
-                photo: photos[i],
-                isLeftItem: true,
-              ),
-            ),
+    return GridView.builder(
+      padding: const EdgeInsets.all(16),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        crossAxisSpacing: 16,
+        mainAxisSpacing: 16,
+        childAspectRatio: 1.0,
+      ),
+      itemCount: photos.length,
+      itemBuilder: (context, index) {
+        return _PhotoItem(photo: photos[index]);
+      },
+    );
 
-            const SizedBox(width: 8),
+    // for (int i = 0; i < photos.length; i += 2) {
+    //   rows.add(Padding(
+    //     padding: const EdgeInsets.symmetric(vertical: 8.0),
+    //     child: Row(
+    //       children: [
+    //         // First photo (always present)
+    //         Expanded(
+    //           child: _PhotoItem(
+    //             photo: photos[i],
+    //             isLeftItem: true,
+    //           ),
+    //         ),
 
-            // Second photo (if exists, else empty space)
-            if (i + 1 < photos.length)
-              Expanded(
-                child: _PhotoItem(
-                  photo: photos[i + 1],
-                  isLeftItem: false,
-                ),
-              )
-            else
-              const Expanded(child: SizedBox()),
-          ],
-        ),
-      ));
-    }
-    if (photos.isEmpty) {
-      return Center(
-        child: Text(
-          context.translations.noItems,
-          style: TextStyles.textNormal,
-        ),
-      );
-    } else if (photos.isNotEmpty) {
-      return SingleChildScrollView(
-        padding: const EdgeInsets.only(right: 64),
-        child: Column(
-          children: rows,
-        ),
-      );
-    } else {
-      return SizedBox.shrink();
-    }
+    //         const SizedBox(width: 8),
+
+    //         // Second photo (if exists, else empty space)
+    //         if (i + 1 < photos.length)
+    //           Expanded(
+    //             child: _PhotoItem(
+    //               photo: photos[i + 1],
+    //               isLeftItem: false,
+    //             ),
+    //           )
+    //         else
+    //           const Expanded(child: SizedBox()),
+    //       ],
+    //     ),
+    //   ));
+    // }
+    // if (photos.isEmpty) {
+    //   return Center(
+    //     child: Text(
+    //       context.translations.noItems,
+    //       style: TextStyles.textNormal,
+    //     ),
+    //   );
+    // } else if (photos.isNotEmpty) {
+    //   return SingleChildScrollView(
+    //     padding: const EdgeInsets.only(right: 64),
+    //     child: Column(
+    //       children: rows,
+    //     ),
+    //   );
+    // } else {
+    //   return SizedBox.shrink();
+    // }
   }
 }
 
 class _PhotoItem extends StatelessWidget {
   final PhotoApiModel photo;
-  final bool isLeftItem;
 
-  const _PhotoItem({required this.photo, required this.isLeftItem});
+  const _PhotoItem({required this.photo});
 
   @override
   Widget build(BuildContext context) {
@@ -156,10 +167,7 @@ class _PhotoItem extends StatelessWidget {
       child: SizedBox(
         height: 200,
         child: Padding(
-          padding: EdgeInsets.only(
-              left: isLeftItem ? 0 : 8,
-              right: !isLeftItem ? 0 : 8,
-              bottom: 16),
+          padding: EdgeInsets.only(left: 8, bottom: 16),
           child: ClipRRect(
             borderRadius: BorderRadius.all(radius),
             child: Stack(
@@ -189,13 +197,10 @@ class _PhotoInfo extends StatelessWidget {
       alignment: Alignment.bottomCenter,
       child: Container(
         width: double.infinity,
-        padding: EdgeInsets.symmetric(
-            horizontal: 16, vertical: 8),
+        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(color: ColorName.secondary),
         child: Text(
-          (photo.description?.isNotEmpty ?? false)
-              ? photo.description!
-              : Strings.noContentPlaceholder,
+          photo.description ?? Strings.noContentPlaceholder,
           maxLines: 1,
           style: TextStyles.textNormal,
         ),
