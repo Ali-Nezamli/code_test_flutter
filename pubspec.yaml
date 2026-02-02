@@ -75,7 +75,7 @@ flutter:
   generate: true
 
   assets:
-    - assets/images/
+    - assets/
   fonts:
     - family: Cabin
       fonts:

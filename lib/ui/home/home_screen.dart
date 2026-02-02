@@ -1,4 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:code_test_flutter/core/navigation/app_router.dart';
+import 'package:code_test_flutter/core/navigation/app_router_widget.dart';
+import 'package:code_test_flutter/core/routes.dart';
 import 'package:code_test_flutter/data/api/entities/photo_api_model.dart';
 import 'package:code_test_flutter/inject/app_module.dart';
 import 'package:code_test_flutter/ui/util/retry_button.dart';
@@ -163,7 +166,10 @@ class _PhotoItem extends StatelessWidget {
   Widget build(BuildContext context) {
     final radius = Radius.circular(8);
     return RippleEffect(
-      onTap: () => {},
+       onTap: () {
+        final router = AppRouterWidget.of(context);
+        router.navigate(context, Routes.photoDetailScreen, extra: photo);
+      },
       child: SizedBox(
         height: 200,
         child: Padding(
